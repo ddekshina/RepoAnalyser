@@ -27,26 +27,32 @@ class GitHubRepoAnalyzer:
         self.api_key = api_key
         genai.configure(api_key=api_key)
         
-        # Try using the current naming convention for Gemini models
-        # This is the most likely model name as of now
+        # Try using Gemini 2.0 Flash-Lite
         try:
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
+            self.model = genai.GenerativeModel('gemini-2.0-flash-lite')
+            logger.info("Successfully initialized gemini-2.0-flash-lite model")
         except Exception as e:
-            logger.warning(f"Failed to initialize gemini-1.5-pro: {e}")
+            logger.warning(f"Failed to initialize gemini-2.0-flash-lite: {e}")
             try:
-                # Fall back to potential alternative model names
-                self.model = genai.GenerativeModel('gemini-pro')
+                # Fall back to gemini-1.5-pro
+                self.model = genai.GenerativeModel('gemini-1.5-pro')
+                logger.info("Falling back to gemini-1.5-pro model")
             except Exception as e2:
-                logger.warning(f"Failed to initialize gemini-pro: {e2}")
-                # As last resort, list available models and use the first generative one
-                models = genai.list_models()
-                generative_models = [m for m in models if "generateContent" in m.supported_generation_methods]
-                if generative_models:
-                    logger.info(f"Using available model: {generative_models[0].name}")
-                    self.model = genai.GenerativeModel(generative_models[0].name)
-                else:
-                    raise ValueError("No suitable Gemini models found. Please check your API key and available models.")
-
+                logger.warning(f"Failed to initialize gemini-1.5-pro: {e2}")
+                try:
+                    # Try another fallback
+                    self.model = genai.GenerativeModel('gemini-pro')
+                    logger.info("Falling back to gemini-pro model")
+                except Exception as e3:
+                    logger.warning(f"Failed to initialize gemini-pro: {e3}")
+                    # As last resort, list available models and use the first generative one
+                    models = genai.list_models()
+                    generative_models = [m for m in models if "generateContent" in m.supported_generation_methods]
+                    if generative_models:
+                        logger.info(f"Using available model: {generative_models[0].name}")
+                        self.model = genai.GenerativeModel(generative_models[0].name)
+                    else:
+                        raise ValueError("No suitable Gemini models found. Please check your API key and available models.")
             
         # Common binary/non-text file extensions to ignore
         self.ignored_extensions = {

@@ -5,6 +5,7 @@ import threading
 from main import GitHubRepoAnalyzer
 import uuid
 import logging
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -74,7 +75,7 @@ def analyze():
         'report_path': None,
         'pdf_path': None,
         'error': None,
-        'timestamp': import_time() 
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Fixed: Direct call to datetime
     }
     
     # Start analysis in a separate thread
@@ -115,11 +116,6 @@ def download_report(job_id, filetype):
     else:
         flash(f'Requested file ({filetype}) not available', 'error')
         return redirect(url_for('job_status', job_id=job_id))
-
-def import_time():
-    """Get current time."""
-    from datetime import datetime
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 if __name__ == '__main__':
     app.run(debug=True)
