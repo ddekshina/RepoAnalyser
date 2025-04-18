@@ -11,6 +11,7 @@ from pathlib import Path
 import google.generativeai as genai
 from typing import List, Dict, Any, Tuple
 import logging
+from dotenv import load_dotenv 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -270,9 +271,10 @@ class GitHubRepoAnalyzer:
         
         1. **Introduction** – What is the project about?
         2. **Idea** – What problem is it solving or what goal is it trying to achieve?
-        3. **Implementation** – How does it work internally? Highlight logic and flow.
-        4. **Tech Stack Used** – Languages, frameworks, libraries used in the code.
-        5. **Conclusion** – Wrap-up summarizing the project's core functionality and value.
+        3. **Features** – What are the key functionalities and capabilities offered by the project?
+        4. **Implementation** – How does it work internally? Highlight logic and workflow.
+        5. **Tech Stack Used** – Languages, frameworks, libraries used in the code.
+        6. **Conclusion** – Wrap-up summarizing the project's core functionality and value.
         
         CODE ANALYSES:
         {combined_analyses}
@@ -421,6 +423,9 @@ class GitHubRepoAnalyzer:
             return None
 
 def main():
+    
+    load_dotenv()
+
     parser = argparse.ArgumentParser(description='Analyze a GitHub repository using Gemini API')
     parser.add_argument('repo_url', help='URL of the GitHub repository to analyze')
     parser.add_argument('--output-dir', '-o', help='Directory to save the analysis report')
