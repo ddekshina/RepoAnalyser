@@ -19,6 +19,9 @@
         .job-card {
             margin-bottom: 1rem;
         }
+        .output-type-description {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -57,6 +60,24 @@
                                        placeholder="Leave blank to use environment variable">
                                 <div class="form-text">Leave blank to use GEMINI_API_KEY from environment.</div>
                             </div>
+                            <div class="mb-3">
+                                <label for="output_type" class="form-label">Output Type</label>
+                                <select class="form-select" id="output_type" name="output_type" onchange="updateDescription()">
+                                    <option value="analysis" selected>Code Analysis</option>
+                                    <option value="readme">README Generator</option>
+                                    <option value="guidance">Development Guidance</option>
+                                </select>
+                                
+                                <div class="form-text mt-2 output-type-description" id="analysis-desc">
+                                    Generate a comprehensive analysis of the repository's code, structure, and functionality.
+                                </div>
+                                <div class="form-text mt-2 output-type-description" id="readme-desc">
+                                    Create a professional README.md file for the repository based on code analysis.
+                                </div>
+                                <div class="form-text mt-2 output-type-description" id="guidance-desc">
+                                    Generate a prioritized step-by-step development checklist to help complete and enhance the project.
+                                </div>
+                            </div>
                             <div class="mb-3 form-check">
                                 <input type="checkbox" class="form-check-input" id="generate_pdf" name="generate_pdf">
                                 <label class="form-check-label" for="generate_pdf">Generate PDF Report</label>
@@ -83,7 +104,16 @@
                                         </div>
                                         <p class="mb-1">{{ job.repo_url }}</p>
                                         <small class="d-flex justify-content-between">
-                                            <span>Status: 
+                                            <span>
+                                                {% if job.output_type == 'analysis' %}
+                                                    <span class="badge bg-info">Analysis</span>
+                                                {% elif job.output_type == 'readme' %}
+                                                    <span class="badge bg-primary">README</span>
+                                                {% elif job.output_type == 'guidance' %}
+                                                    <span class="badge bg-secondary">Guidance</span>
+                                                {% endif %}
+                                                
+                                                Status: 
                                                 {% if job.status == 'running' %}
                                                     <span class="badge bg-warning">Running</span>
                                                 {% elif job.status == 'completed' %}
@@ -106,6 +136,26 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Show the appropriate description when the output type changes
+        function updateDescription() {
+            // Hide all descriptions
+            document.querySelectorAll('.output-type-description').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show the selected description
+            const selectedValue = document.getElementById('output_type').value;
+            const descElement = document.getElementById(selectedValue + '-desc');
+            if (descElement) {
+                descElement.style.display = 'block';
+            }
+        }
+        
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDescription();
+        });
+    </script>
 </body>
 </html>
-

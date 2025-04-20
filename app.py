@@ -21,11 +21,11 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 # Store analysis jobs
 analysis_jobs = {}
 
-def analyze_repo_async(job_id, repo_url, api_key, generate_pdf=False):
+def analyze_repo_async(job_id, repo_url, api_key, output_type, generate_pdf=False):
     """Run the repository analysis in a separate thread."""
     try:
         analyzer = GitHubRepoAnalyzer(api_key)
-        report_path, _ = analyzer.analyze_repository(repo_url, REPORTS_DIR)
+        report_path, _ = analyzer.analyze_repository(repo_url, output_type, REPORTS_DIR)
         
         analysis_jobs[job_id]['status'] = 'completed'
         analysis_jobs[job_id]['report_path'] = report_path
@@ -48,6 +48,11 @@ def index():
 def analyze():
     repo_url = request.form.get('repo_url')
     generate_pdf = 'generate_pdf' in request.form
+    
+    # Get output type from form
+    output_type = request.form.get('output_type', 'analysis')
+    if output_type not in ['analysis', 'readme', 'guidance']:
+        output_type = 'analysis'  # Default to analysis if invalid type provided
     
     if not repo_url:
         flash('Please enter a GitHub repository URL', 'error')
@@ -72,21 +77,28 @@ def analyze():
         'repo_url': repo_url,
         'repo_name': repo_name,
         'status': 'running',
+        'output_type': output_type,
         'report_path': None,
         'pdf_path': None,
         'error': None,
-        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Fixed: Direct call to datetime
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     
     # Start analysis in a separate thread
     thread = threading.Thread(
         target=analyze_repo_async,
-        args=(job_id, repo_url, api_key, generate_pdf)
+        args=(job_id, repo_url, api_key, output_type, generate_pdf)
     )
     thread.daemon = True
     thread.start()
     
-    flash(f'Analysis started for repository: {repo_name}', 'info')
+    report_type_name = {
+        "analysis": "Analysis report",
+        "readme": "README file", 
+        "guidance": "Development guidance"
+    }.get(output_type, "Analysis report")
+    
+    flash(f'{report_type_name} generation started for repository: {repo_name}', 'info')
     return redirect(url_for('index'))
 
 @app.route('/status/<job_id>')

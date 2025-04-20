@@ -1,4 +1,3 @@
-# main.py
 import os
 import sys
 import argparse
@@ -252,36 +251,90 @@ class GitHubRepoAnalyzer:
             logger.error(f"Failed to analyze code chunk: {e}")
             return f"[Error analyzing code: {str(e)}]"
 
-    def generate_project_summary(self, analyses: List[str], project_name: str) -> str:
+    def generate_project_summary(self, analyses: List[str], project_name: str, output_type: str = "analysis") -> str:
         """
-        Generate a comprehensive project summary based on code analyses.
+        Generate a project summary based on code analyses with different output formats.
         
         Args:
             analyses: List of code analyses
             project_name: Name of the GitHub repository
+            output_type: Type of output to generate (analysis, readme, guidance)
             
         Returns:
             str: Markdown report
         """
         combined_analyses = "\n\n".join(analyses)
         
-        prompt = f"""
-        You are a technical documentation expert. Based on the following code analyses from the GitHub repository "{project_name}", 
-        generate a comprehensive markdown report with these sections:
-        
-        1. **Introduction** – What is the project about?
-        2. **Idea** – What problem is it solving or what goal is it trying to achieve?
-        3. **Features** – What are the key functionalities and capabilities offered by the project?
-        4. **Implementation** – How does it work internally? Highlight logic and workflow.
-        5. **Tech Stack Used** – Languages, frameworks, libraries used in the code.
-        6. **Conclusion** – Wrap-up summarizing the project's core functionality and value.
-        
-        CODE ANALYSES:
-        {combined_analyses}
-        
-        Format your response as a valid Markdown document. Be specific and technical, focusing only on what can be determined from the code itself. Do not make assumptions beyond what's evident from the code. Use appropriate Markdown formatting including headers, code blocks, bullet points, etc.
-        """
-        
+        if output_type == "analysis":
+            prompt = f"""
+            You are a technical documentation expert. Based on the following code analyses from the GitHub repository "{project_name}", 
+            generate a comprehensive markdown report with these sections:
+            
+            1. **Introduction** – What is the project about?
+            2. **Idea** – What problem is it solving or what goal is it trying to achieve?
+            3. **Features** – What are the key functionalities and capabilities offered by the project?
+            4. **Implementation** – How does it work internally? Highlight logic and workflow.
+            5. **Tech Stack Used** – Languages, frameworks, libraries used in the code.
+            6. **Conclusion** – Wrap-up summarizing the project's core functionality and value.
+            
+            CODE ANALYSES:
+            {combined_analyses}
+            
+            Format your response as a valid Markdown document. Be specific and technical, focusing only on what can be determined from the code itself. Do not make assumptions beyond what's evident from the code. Use appropriate Markdown formatting including headers, code blocks, bullet points, etc.
+            """
+        elif output_type == "readme":
+            prompt = f"""
+            You are a README.md generator and a technical documentation expert. Based on the following code analysis from the GitHub repository "{project_name}", create a professional and informative README file in Markdown format. The README should include the following sections:
+
+            1. **# {project_name}** – Use this as the title.
+            2. **## Introduction** – Briefly describe what the project is and its overall purpose.
+            3. **## Problem Statement / Idea** – Explain the problem it solves or the goal it aims to achieve.
+            4. **## Features** – List key features and functionalities implemented in the code.
+            5. **## How It Works (Implementation Overview)** – Describe the internal logic, core components, and workflow.
+            6. **## Tech Stack** – List programming languages, libraries, frameworks, and tools used.
+            7. **## Getting Started (optional)** – If setup steps are found in the code (like setup.py, package.json, or Dockerfile), summarize them here.
+            8. **## Conclusion** – Wrap up with a summary of the project's capabilities and use cases.
+
+            CODE ANALYSIS:
+            {combined_analyses}
+
+            Guidelines:
+            - Only include information that is evident from the code analysis. Do not speculate.
+            - Use proper Markdown formatting (headings, bullet points, code blocks, etc.).
+            - Maintain clarity, conciseness, and technical accuracy.
+            """
+        elif output_type == "guidance":
+            prompt = f"""
+                You are a senior software engineer and technical project architect. Based on the following code analysis from the GitHub repository "{project_name}", generate a detailed, prioritized roadmap in the form of a **Markdown checklist** that outlines what is needed to **complete and enhance the project into a fully functional full-stack application**.
+
+                Your response should:
+
+                1. Analyze only what is evident or implied from the current codebase — do **not** assume anything beyond the code.
+                2. Identify and highlight:
+                - Missing components (e.g., frontend, backend, database, APIs)
+                - Incomplete features or modules
+                - Bugs or unhandled edge cases
+                - Areas for optimization or cleanup
+                3. If the project lacks a frontend or backend, provide clear guidance on what needs to be built to complete that layer.
+                4. If other parts of a full-stack system are missing (e.g., database, deployment setup, authentication, state management), include those in the checklist too.
+                5. Group tasks under relevant headings: **Frontend**, **Backend**, **Database**, **Authentication**, **Deployment**, **Testing**, etc.
+                6. Format your output as a Markdown document under the header:
+
+                ## ✅ Next Steps to Complete and Deploy the Project
+
+                CODE ANALYSIS:
+                {combined_analyses}
+
+                Additional Instructions:
+                - Be concise, technically sound, and actionable.
+                - Do **not** repeat what's already implemented unless it needs improvement.
+                - Prioritize tasks where relevant (e.g., foundational setup before feature additions).
+                """
+        else:
+            # Default to analysis if an unknown type is provided
+            logger.warning(f"Unknown output type '{output_type}', defaulting to 'analysis'")
+            return self.generate_project_summary(analyses, project_name, "analysis")
+
         try:
             response = self.model.generate_content(prompt)
             return response.text
@@ -289,12 +342,13 @@ class GitHubRepoAnalyzer:
             logger.error(f"Failed to generate project summary: {e}")
             return f"# Error Generating Project Summary\n\nAn error occurred: {str(e)}"
 
-    def analyze_repository(self, repo_url: str, output_dir: str = None) -> Tuple[str, str]:
+    def analyze_repository(self, repo_url: str, output_type: str = "analysis", output_dir: str = None) -> Tuple[str, str]:
         """
         Analyze a GitHub repository and generate a report.
         
         Args:
             repo_url: URL of the GitHub repository
+            output_type: Type of output to generate (analysis, readme, guidance)
             output_dir: Directory to save the report
             
         Returns:
@@ -352,16 +406,23 @@ class GitHubRepoAnalyzer:
                     combined_file_analysis = f"## Analysis of {rel_path}\n\n" + "\n\n".join(file_analysis)
                     analyses.append(combined_file_analysis)
             
-            # Generate comprehensive report
-            report_content = self.generate_project_summary(analyses, repo_name)
+            # Generate report based on specified output type
+            report_content = self.generate_project_summary(analyses, repo_name, output_type)
+            
+            # Create appropriate filename based on output type
+            filename_suffix = {
+                "analysis": "analysis",
+                "readme": "README",
+                "guidance": "guidance"
+            }.get(output_type, "analysis")
             
             # Save the report
             if output_dir:
                 os.makedirs(output_dir, exist_ok=True)
-                report_path = os.path.join(output_dir, f"{repo_name}_analysis.md")
+                report_path = os.path.join(output_dir, f"{repo_name}_{filename_suffix}.md")
                 with open(report_path, 'w', encoding='utf-8') as f:
                     f.write(report_content)
-                logger.info(f"Analysis report saved to: {report_path}")
+                logger.info(f"{output_type.capitalize()} report saved to: {report_path}")
             else:
                 report_path = None
                 
@@ -413,13 +474,16 @@ class GitHubRepoAnalyzer:
             </html>
             """
             
-            # Convert HTML to PDF
-            pdfkit.from_string(styled_html, pdf_path)
+            # Specify path to wkhtmltopdf executable
+            config = pdfkit.configuration(wkhtmltopdf='C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe')
+            
+            # Convert HTML to PDF with configuration
+            pdfkit.from_string(styled_html, pdf_path, configuration=config)
             logger.info(f"PDF report saved to: {pdf_path}")
             return pdf_path
             
         except Exception as e:
-            logger.error(f"Failed to export to PDF: {e}")
+            logger.error(f"Failed to export to PDF: {e}", exc_info=True)  # Added exc_info for more detailed error
             return None
 
 def main():
@@ -428,6 +492,8 @@ def main():
 
     parser = argparse.ArgumentParser(description='Analyze a GitHub repository using Gemini API')
     parser.add_argument('repo_url', help='URL of the GitHub repository to analyze')
+    parser.add_argument('--output-type', '-t', choices=['analysis', 'readme', 'guidance'], 
+                        default='analysis', help='Type of output to generate (analysis, readme, guidance)')
     parser.add_argument('--output-dir', '-o', help='Directory to save the analysis report')
     parser.add_argument('--api-key', '-k', help='Google Gemini API key')
     parser.add_argument('--pdf', action='store_true', help='Export report to PDF')
@@ -444,7 +510,12 @@ def main():
     
     # Create analyzer and process repository
     analyzer = GitHubRepoAnalyzer(api_key)
-    report_path, report_content = analyzer.analyze_repository(args.repo_url, output_dir)
+    
+    # Get the output type from args
+    output_type = args.output_type
+    
+    print(f"Processing repository to generate {output_type} report...")
+    report_path, report_content = analyzer.analyze_repository(args.repo_url, output_type, output_dir)
     
     if not report_path:
         print(report_content)  # Print error message
@@ -456,7 +527,13 @@ def main():
         if pdf_path:
             print(f"PDF report saved to: {pdf_path}")
     
-    print(f"Analysis complete. Report saved to: {report_path}")
+    report_type_name = {
+        "analysis": "Analysis report",
+        "readme": "README file",
+        "guidance": "Development guidance"
+    }.get(output_type, "Report")
+    
+    print(f"{report_type_name} complete. Saved to: {report_path}")
     
 if __name__ == "__main__":
     main()

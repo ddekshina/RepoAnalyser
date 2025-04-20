@@ -20,7 +20,17 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Analysis Status</h1>
+            <h1>
+                {% if job.output_type == 'analysis' %}
+                    Analysis Status
+                {% elif job.output_type == 'readme' %}
+                    README Generation Status
+                {% elif job.output_type == 'guidance' %}
+                    Development Guidance Status
+                {% else %}
+                    Job Status
+                {% endif %}
+            </h1>
             <p class="lead">{{ job.repo_name }}</p>
         </div>
 
@@ -43,13 +53,33 @@
                     <strong>Repository:</strong> <a href="{{ job.repo_url }}" target="_blank">{{ job.repo_url }}</a>
                 </div>
                 <div class="mb-3">
+                    <strong>Output Type:</strong> 
+                    {% if job.output_type == 'analysis' %}
+                        <span class="badge bg-info">Code Analysis</span>
+                    {% elif job.output_type == 'readme' %}
+                        <span class="badge bg-primary">README Generator</span>
+                    {% elif job.output_type == 'guidance' %}
+                        <span class="badge bg-secondary">Development Guidance</span>
+                    {% endif %}
+                </div>
+                <div class="mb-3">
                     <strong>Status:</strong> 
                     {% if job.status == 'running' %}
                         <span class="badge bg-warning">Running</span>
                         <div class="progress mt-2">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
                         </div>
-                        <small class="text-muted">Analysis in progress, this may take a few minutes...</small>
+                        <small class="text-muted">
+                            {% if job.output_type == 'analysis' %}
+                                Analysis in progress, this may take a few minutes...
+                            {% elif job.output_type == 'readme' %}
+                                Generating README.md, this may take a few minutes...
+                            {% elif job.output_type == 'guidance' %}
+                                Creating development checklist, this may take a few minutes...
+                            {% else %}
+                                Processing, this may take a few minutes...
+                            {% endif %}
+                        </small>
                         <script>
                             // Auto-refresh the page every 5 seconds to check for updates
                             setTimeout(function() {
@@ -80,7 +110,13 @@
                                         <path d="M11.5 5a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 1 .5-.5z"/>
                                         <path d="M3.56 11V7.01h.056l1.428 3.239h.774l1.42-3.24h.056V11h1.073V5.001h-1.2l-1.71 3.894h-.039l-1.71-3.894H2.5V11h1.06z"/>
                                     </svg>
+                                    {% if job.output_type == 'readme' %}
+                                    Download README.md
+                                    {% elif job.output_type == 'guidance' %}
+                                    Download Development Guide
+                                    {% else %}
                                     Download Markdown Report
+                                    {% endif %}
                                 </a>
                             {% endif %}
                             
@@ -92,6 +128,8 @@
                                     </svg>
                                     Download PDF Report
                                 </a>
+                            {% elif 'generate_pdf' in job %}
+                                <div class="alert alert-warning">PDF generation failed. Please check server logs.</div>
                             {% endif %}
                         </div>
                     </div>
