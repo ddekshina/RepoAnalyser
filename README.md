@@ -1,20 +1,21 @@
 # RepoAnalyser 
 
-This tool analyzes GitHub repositories using Google's Gemini API to generate detailed reports about the code. The tool clones a repository, extracts code from the latest commit, and uses Gemini to analyze the codebase.
+A web application leveraging Google's generative AI to automatically analyze GitHub repositories and generate insightful reports in various formats, including project summaries and development guidance.
 
 ## Features
 
-- **Clone GitHub repositories** directly from their URL
-- **Analyze only the latest commit** (excluding documentation files)
-- **Generate structured reports** with the following sections:
-  - Introduction - What the project is about
-  - Idea - The problem it solves or its goal
-  - Implementation - Internal workings and code flow
-  - Tech Stack - Languages, frameworks, and libraries used
-  - Conclusion - Summary of core functionality and value
-- **Export reports** in Markdown format
-- **Web interface** for easy repository submission and report viewing
-- **Command-line interface** for automation and scripting
+*   **GitHub Repository Analysis:** Analyzes code within a specified GitHub repository.
+*   **Report Generation:**  Generates reports in various formats, including
+      - 🔎 Code Analysis  
+      - 📝 README Generator  
+      - 🛠️ Development Guidance
+*   **Web Interface:**  Provides a web interface for submitting repository URLs, displaying analysis status, and downloading reports.
+*   **Asynchronous Processing:** Uses background tasks (threading) to handle repository analysis without blocking the main application.
+*   **Report Formats:** Generates Markdown reports.
+*   **PDF Generation (Optional):** Converts Markdown reports to PDF format.
+*   **Job Tracking:**  Tracks the status and results of analysis jobs.
+*   **Error Handling and Logging:** Includes error handling and logging for monitoring the analysis process.
+*   **Automated Report Download:** Allows users to download generated reports in Markdown (.md) and PDF formats.
 
 |Web UI|
 |------|
@@ -25,7 +26,7 @@ This tool analyzes GitHub repositories using Google's Gemini API to generate det
 ### Command Line Interface
 
 ```bash
-python main.py https://github.com/username/repository --api-key your_api_key_here
+python main.py https://github.com/username/repo-name --output-type analysis
 ```
 |CLI UI|
 |------|
@@ -37,6 +38,36 @@ python main.py https://github.com/username/repository --api-key your_api_key_her
 - Python 3.8+
 - Git installed and accessible in your PATH
 - Google Gemini API key
+
+## How It Works (Implementation Overview)
+
+The application's workflow involves the following core steps:
+
+1.  **User Input:** The web interface (templates\index.html) allows users to submit a GitHub repository URL, an output type (analysis, README, or guidance), and an API key.
+2.  **Analysis Initiation:**  A backend process (likely in app.py or main.py) receives the user's input and initiates the analysis process.
+3.  **Repository Cloning:** The application clones the specified GitHub repository locally (using `git clone`).
+4.  **Code File Collection:** The application identifies and collects code files within the repository.
+5.  **Code Analysis:** The `GitHubRepoAnalyzer` class (from main.py) analyzes the code, potentially using the Google Gemini API.
+6.  **Report Generation:** Based on the selected output type, a report is generated.
+7.  **Markdown Conversion and PDF Generation:** The report is generated as Markdown, with an option for converting the Markdown to PDF (using `pdfkit`).
+8.  **Report Storage:** Generated reports are saved.
+9.  **Status Display:** The web interface (templates\status.html) displays the status of the analysis job, including progress, errors, and links to download the reports.
+10. **Report Downloading:** Users can download generated reports.
+
+The `GitHubRepoAnalyzer` class, likely defined in `main.py`, is responsible for the core analysis functionality.  It uses methods to clone the repository, identify code files, read file content, split large text into chunks (to handle API limits), and analyze code using prompts for an LLM (e.g., Google Gemini).
+
+## Tech Stack
+
+*   **Programming Language:** Python
+*   **Web Framework:** Flask
+*   **AI Model Interaction:** Google Gemini API via `google-generativeai` library.
+*   **Templating Engine:** Jinja (implied)
+*   **Markdown Processing:** `markdown` library.
+*   **PDF Generation:** `pdfkit` library (requires wkhtmltopdf).
+*   **Asynchronous Task Execution:**  `threading` module.
+*   **Command-line Argument Parsing:** `argparse` library.
+*   **Version Control (Git):** `gitpython` library.
+*   **CSS Framework:** Bootstrap (5.3.0-alpha1)
 
 ## Installation
 
@@ -70,15 +101,6 @@ python app.py
 ```
 
 Then navigate to `http://localhost:5000` in your web browser.
-
-
-## How It Works
-
-1. **Repository Cloning**: The tool clones the specified GitHub repository with a depth of 1 to get only the latest commit.
-2. **Code Extraction**: It identifies all code files in the repository, skipping documentation files and binary files.
-3. **Code Analysis**: The code is processed in chunks and analyzed using Gemini API to extract insights.
-4. **Report Generation**: The analyses are combined to create a comprehensive report detailing the project's purpose, implementation, and technologies.
-5. **Export**: The report is saved as a Markdown file.
 
 ## Limitations
 
