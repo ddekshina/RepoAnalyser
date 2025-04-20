@@ -11,6 +11,7 @@ import google.generativeai as genai
 from typing import List, Dict, Any, Tuple
 import logging
 from dotenv import load_dotenv 
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -304,32 +305,45 @@ class GitHubRepoAnalyzer:
             - Maintain clarity, conciseness, and technical accuracy.
             """
         elif output_type == "guidance":
-            prompt = f"""
-                You are a senior software engineer and technical project architect. Based on the following code analysis from the GitHub repository "{project_name}", generate a detailed, prioritized roadmap in the form of a **Markdown checklist** that outlines what is needed to **complete and enhance the project into a fully functional full-stack application**.
+                prompt = f"""
+                You are a senior software engineer and technical project architect. Based on the following code analysis from the GitHub repository "{project_name}", generate a **precise and prioritized Markdown guide** that outlines **only what is missing, incomplete, flawed, or needs improvement** in the current project.
 
-                Your response should:
+                Your output should **strictly reflect the gaps and issues in the existing code** and serve as a clear technical to-do list to complete and enhance the project into a robust, full-stack application.
 
-                1. Analyze only what is evident or implied from the current codebase — do **not** assume anything beyond the code.
-                2. Identify and highlight:
-                - Missing components (e.g., frontend, backend, database, APIs)
-                - Incomplete features or modules
-                - Bugs or unhandled edge cases
-                - Areas for optimization or cleanup
-                3. If the project lacks a frontend or backend, provide clear guidance on what needs to be built to complete that layer.
-                4. If other parts of a full-stack system are missing (e.g., database, deployment setup, authentication, state management), include those in the checklist too.
-                5. Group tasks under relevant headings: **Frontend**, **Backend**, **Database**, **Authentication**, **Deployment**, **Testing**, etc.
-                6. Format your output as a Markdown document under the header:
+                ### Your guide must:
+                1. Focus **only** on what is missing, partially implemented, buggy, or poorly structured — **do not add general guidance or best practices** unless the code clearly lacks it.
+                2. Include:
+                - Components or features that are not present but are implied to be needed
+                - Incomplete logic, commented-out or placeholder sections
+                - Bugs, unhandled cases, and performance concerns
+                - Code quality or structural issues that require refactoring
+                3. Highlight full-stack gaps:
+                - If the frontend is missing, clearly list what should be added based on backend endpoints or expected user interactions.
+                - If the backend is missing or incomplete, infer needed APIs or data handling from the frontend or related files.
+                - Point out if there’s no database model despite persistent data needs, no authentication for protected routes, or missing deployment configuration.
+                4. Group guide items under **technical categories** such as:
+                - `Frontend`
+                - `Backend`
+                - `API`
+                - `Database`
+                - `Authentication & Authorization`
+                - `Testing`
+                - `Deployment`
+                - `Code Quality & Refactoring`
+                5. Use Markdown guide under the header:
 
-                ## ✅ Next Steps to Complete and Deploy the Project
+                ## ✅ Next Steps to Complete and Improve the Project
 
                 CODE ANALYSIS:
                 {combined_analyses}
 
-                Additional Instructions:
-                - Be concise, technically sound, and actionable.
-                - Do **not** repeat what's already implemented unless it needs improvement.
-                - Prioritize tasks where relevant (e.g., foundational setup before feature additions).
+                ### Output Instructions:
+                - Be brief but technically clear.
+                - Do **not** describe what is already complete unless it needs fixing or revision.
+                - Do **not** add assumptions not backed by the code.
+                - Prioritize core issues before enhancements.
                 """
+
         else:
             # Default to analysis if an unknown type is provided
             logger.warning(f"Unknown output type '{output_type}', defaulting to 'analysis'")
@@ -451,26 +465,197 @@ class GitHubRepoAnalyzer:
             # Add some basic styling
             styled_html = f"""
             <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Repository Analysis</title>
-                <style>
-                    body {{ font-family: Arial, sans-serif; line-height: 1.6; max-width: 900px; margin: 0 auto; padding: 20px; }}
-                    h1, h2, h3 {{ color: #333; }}
-                    code {{ background-color: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }}
-                    pre {{ background-color: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }}
-                    pre code {{ background-color: transparent; padding: 0; }}
-                    blockquote {{ border-left: 4px solid #ddd; padding-left: 15px; color: #666; }}
-                    table {{ border-collapse: collapse; width: 100%; }}
-                    th, td {{ border: 1px solid #ddd; padding: 8px; }}
-                    th {{ background-color: #f4f4f4; }}
-                    tr:nth-child(even) {{ background-color: #f9f9f9; }}
-                </style>
-            </head>
-            <body>
-                {html_content}
-            </body>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Repository Analysis</title>
+                    <style>
+                        /* Base styles */
+                        body {{
+                            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+                            line-height: 1.6;
+                            max-width: 900px;
+                            margin: 0 auto;
+                            padding: 30px;
+                            color: #333;
+                            background-color: #fff;
+                        }}
+
+                        /* Headers */
+                        h1 {{
+                            font-size: 28px;
+                            color: #2c3e50;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                            margin-top: 20px;
+                            font-weight: 600;
+                        }}
+
+                        h2 {{
+                            font-size: 24px;
+                            color: #2980b9;
+                            margin-top: 24px;
+                            border-left: 4px solid #3498db;
+                            padding-left: 10px;
+                            font-weight: 500;
+                        }}
+
+                        h3 {{
+                            font-size: 20px;
+                            color: #16a085;
+                            margin-top: 20px;
+                            font-weight: 500;
+                        }}
+
+                        /* Paragraphs and text */
+                        p {{
+                            margin-bottom: 16px;
+                            text-align: justify;
+                        }}
+
+                        strong {{
+                            color: #2c3e50;
+                            font-weight: 600;
+                        }}
+
+                        em {{
+                            color: #7f8c8d;
+                        }}
+
+                        /* Code blocks */
+                        code {{
+                            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                            background-color: #f7f9fb;
+                            color: #e74c3c;
+                            padding: 2px 5px;
+                            border-radius: 3px;
+                            font-size: 90%;
+                            border: 1px solid #eaecef;
+                        }}
+
+                        pre {{
+                            background-color: #f8f8f8;
+                            padding: 15px;
+                            border-radius: 5px;
+                            overflow-x: auto;
+                            border: 1px solid #e1e4e8;
+                            margin: 16px 0;
+                        }}
+
+                        pre code {{
+                            background-color: transparent;
+                            padding: 0;
+                            border: none;
+                            color: #333;
+                            font-size: 14px;
+                            line-height: 1.5;
+                        }}
+
+                        /* Lists */
+                        ul, ol {{
+                            padding-left: 20px;
+                            margin-bottom: 16px;
+                        }}
+
+                        li {{
+                            margin-bottom: 8px;
+                        }}
+
+                        /* Tables */
+                        table {{
+                            border-collapse: collapse;
+                            width: 100%;
+                            margin: 20px 0;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                        }}
+
+                        th, td {{
+                            text-align: left;
+                            padding: 12px;
+                            border: 1px solid #e1e4e8;
+                        }}
+
+                        th {{
+                            background-color: #f1f8ff;
+                            color: #0366d6;
+                            font-weight: 600;
+                        }}
+
+                        tr:nth-child(even) {{
+                            background-color: #f6f8fa;
+                        }}
+
+                        tr:hover {{
+                            background-color: #f0f4f8;
+                        }}
+
+                        /* Blockquotes */
+                        blockquote {{
+                            border-left: 4px solid #3498db;
+                            padding: 10px 15px;
+                            margin: 16px 0;
+                            background-color: #f8f9fa;
+                            color: #4a5568;
+                            font-style: italic;
+                        }}
+
+                        /* Links */
+                        a {{
+                            color: #3498db;
+                            text-decoration: none;
+                        }}
+
+                        a:hover {{
+                            text-decoration: underline;
+                            color: #2980b9;
+                        }}
+
+                        /* Page header */
+                        .repo-header {{
+                            background-color: #f1f8ff;
+                            padding: 20px;
+                            margin-bottom: 30px;
+                            border-radius: 8px;
+                            border-left: 5px solid #0366d6;
+                        }}
+
+                        .repo-header h1 {{
+                            margin-top: 0;
+                            border-bottom: none;
+                        }}
+
+                        /* Feature boxes */
+                        .feature-section {{
+                            margin: 25px 0;
+                            padding: 20px;
+                            background-color: #f8f9fa;
+                            border-radius: 8px;
+                            border: 1px solid #e1e4e8;
+                        }}
+
+                        /* Footer */
+                        .footer {{
+                            margin-top: 40px;
+                            padding-top: 20px;
+                            border-top: 1px solid #eaecef;
+                            color: #6c757d;
+                            font-size: 14px;
+                            text-align: center;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="repo-header">
+                        <h1>Repository Analysis Report</h1>
+                        <p>Comprehensive analysis powered by Google's Gemini AI</p>
+                    </div>
+
+                    {html_content}
+
+                    <div class="footer">
+                        <p>Generated on {datetime.now().strftime("%Y-%m-%d at %H:%M:%S")} | GitHub Repository Analyzer</p>
+                    </div>
+                </body>
             </html>
             """
             
