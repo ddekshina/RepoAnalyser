@@ -16,6 +16,22 @@ This tool analyzes GitHub repositories using Google's Gemini API to generate det
 - **Web interface** for easy repository submission and report viewing
 - **Command-line interface** for automation and scripting
 
+|Web UI|
+|------|
+![GitHub Repository Analyzer - Google Chrome 20-04-2025 16_45_06](https://github.com/user-attachments/assets/547a127f-ba7d-466e-a468-e182abed657f)
+![GitHub Repository Analyzer - Google Chrome 20-04-2025 16_45_34](https://github.com/user-attachments/assets/5c292706-c139-492d-ad35-e82679de7780)
+
+
+### Command Line Interface
+
+```bash
+python main.py https://github.com/username/repository --api-key your_api_key_here
+```
+|CLI UI|
+|------|
+![FaceRecognition_analysis md - RepoAnalyser - Visual Studio Code 15-04-2025 22_48_09](https://github.com/user-attachments/assets/98fecfe3-267a-4bde-aa1e-0c687e31441c)
+
+
 ## Prerequisites
 
 - Python 3.8+
@@ -54,19 +70,6 @@ python app.py
 ```
 
 Then navigate to `http://localhost:5000` in your web browser.
-|Web UI|
-|------|
-![GitHub Repository Analyzer - Personal - Microsoft​ Edge 15-04-2025 22_19_17](https://github.com/user-attachments/assets/671739b3-63c4-4f68-b524-534383ed5f4a)
-![Analysis Status - FaceRecognition - Personal - Microsoft​ Edge 15-04-2025 22_26_00](https://github.com/user-attachments/assets/4d0ec619-b655-4746-a959-3d43ed22c901)
-
-### Command Line Interface
-
-```bash
-python main.py https://github.com/username/repository --api-key your_api_key_here
-```
-|CLI UI|
-|------|
-![FaceRecognition_analysis md - RepoAnalyser - Visual Studio Code 15-04-2025 22_48_09](https://github.com/user-attachments/assets/98fecfe3-267a-4bde-aa1e-0c687e31441c)
 
 
 ## How It Works
