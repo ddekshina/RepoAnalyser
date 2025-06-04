@@ -5,6 +5,7 @@ import threading
 from main import GitHubRepoAnalyzer
 import uuid
 import logging
+from flask import jsonify
 from datetime import datetime
 
 # Configure logging
@@ -25,10 +26,17 @@ def analyze_repo_async(job_id, repo_url, api_key, output_type, generate_pdf=Fals
     """Run the repository analysis in a separate thread."""
     try:
         analyzer = GitHubRepoAnalyzer(api_key)
-        report_path, _ = analyzer.analyze_repository(repo_url, output_type, REPORTS_DIR)
+        report_path, report_content = analyzer.analyze_repository(repo_url, output_type, REPORTS_DIR)
         
         analysis_jobs[job_id]['status'] = 'completed'
         analysis_jobs[job_id]['report_path'] = report_path
+        
+        # Store the analyzer instance for chat functionality
+        analysis_jobs[job_id]['analyzer'] = analyzer
+        # Store the raw analyses for question answering
+        analysis_jobs[job_id]['analyses'] = analyzer._last_analyses if hasattr(analyzer, '_last_analyses') else []
+        # Initialize question counter
+        analysis_jobs[job_id]['question_count'] = 0
         
         # Generate PDF if requested
         if generate_pdf and report_path:
@@ -39,6 +47,49 @@ def analyze_repo_async(job_id, repo_url, api_key, output_type, generate_pdf=Fals
         logger.error(f"Analysis failed for job {job_id}: {e}")
         analysis_jobs[job_id]['status'] = 'failed'
         analysis_jobs[job_id]['error'] = str(e)
+
+# Add new routes for chat functionality
+@app.route('/chat/<job_id>', methods=['POST'])
+def chat(job_id):
+    if job_id not in analysis_jobs:
+        return jsonify({'error': 'Job not found'}), 404
+    
+    job = analysis_jobs[job_id]
+    
+    if job['status'] != 'completed':
+        return jsonify({'error': 'Analysis not yet completed'}), 400
+    
+    # Check question limit
+    if job['question_count'] >= 10:
+        return jsonify({'error': 'Question limit reached (10 questions per repository)'}), 429
+    
+    # Get question from request
+    question = request.json.get('question')
+    if not question:
+        return jsonify({'error': 'No question provided'}), 400
+    
+    # Increment question counter
+    job['question_count'] += 1
+    
+    try:
+        # Get repository name
+        repo_name = job['repo_name']
+        # Get analyses
+        analyses = job['analyses']
+        # Get analyzer
+        analyzer = job['analyzer']
+        
+        # Answer the question
+        answer = analyzer.ask_question_about_repo(repo_name, analyses, question)
+        
+        return jsonify({
+            'answer': answer,
+            'remaining_questions': 10 - job['question_count']
+        })
+    except Exception as e:
+        logger.error(f"Failed to answer question: {e}")
+        return jsonify({'error': f'Failed to answer question: {str(e)}'}), 500
+
 
 @app.route('/')
 def index():

@@ -126,22 +126,20 @@ class GitHubRepoAnalyzer:
         return False
 
     def collect_code_files(self, repo_dir: str) -> Dict[str, List[str]]:
-        """
-        Collect all code files from the repository, grouped by language.
-        
-        Args:
-            repo_dir: Path to the repository directory
-            
-        Returns:
-            Dict mapping language extensions to lists of file paths
-        """
         code_files = {}
+        
+        # Identify important directories to prioritize
+        priority_dirs = ["server", "backend", "api", "src/server", "src/api"]
+        important_files = []
+        regular_files = []
         
         # Walk through the repository directory
         for root, _, files in os.walk(repo_dir):
             # Skip .git directory
             if '.git' in root.split(os.path.sep):
                 continue
+            
+            is_priority = any(priority_dir in root.lower() for priority_dir in priority_dirs)
             
             for file in files:
                 filepath = os.path.join(root, file)
@@ -156,10 +154,17 @@ class GitHubRepoAnalyzer:
                     logger.info(f"Skipping documentation file: {filepath}")
                     continue
                 
-                # Group files by extension (language)
-                if extension not in code_files:
-                    code_files[extension] = []
-                code_files[extension].append(filepath)
+                # Store filepath based on priority
+                if is_priority:
+                    important_files.append((extension, filepath))
+                else:
+                    regular_files.append((extension, filepath))
+        
+        # Process important files first, then regular files
+        for extension, filepath in important_files + regular_files:
+            if extension not in code_files:
+                code_files[extension] = []
+            code_files[extension].append(filepath)
         
         return code_files
 
@@ -268,18 +273,21 @@ class GitHubRepoAnalyzer:
         
         if output_type == "analysis":
             prompt = f"""
-            You are a technical documentation expert. Based on the following code analyses from the GitHub repository "{project_name}", 
+            You are a technical documentation expert analyzing a full-stack application. Based on the following code analyses from the GitHub repository "{project_name}", 
             generate a comprehensive markdown report with these sections:
             
             1. **Introduction** – What is the project about?
-            2. **Idea** – What problem is it solving or what goal is it trying to achieve?
-            3. **Features** – What are the key functionalities and capabilities offered by the project?
-            4. **Implementation** – How does it work internally? Highlight logic and workflow.
-            5. **Tech Stack Used** – Languages, frameworks, libraries used in the code.
-            6. **Conclusion** – Wrap-up summarizing the project's core functionality and value.
+            2. **Architecture Overview** - Identify the main components (frontend, backend, database) and how they connect
+            3. **Frontend Implementation** – Detail the UI components, state management, and user interactions
+            4. **Backend Implementation** – Detail the server-side code, API endpoints, and data processing
+            5. **Data Flow** – How data moves between frontend and backend
+            6. **Tech Stack Used** – Languages, frameworks, libraries used in both frontend and backend
+            7. **Conclusion** – Wrap-up summarizing the project's core functionality and value.
             
             CODE ANALYSES:
             {combined_analyses}
+            
+            Make sure to analyze both frontend and backend components equally, even if one is more prominent in the code. If the repository appears to be a React Native application, ensure you identify and analyze any server-side code as well.
             
             Format your response as a valid Markdown document. Be specific and technical, focusing only on what can be determined from the code itself. Do not make assumptions beyond what's evident from the code. Use appropriate Markdown formatting including headers, code blocks, bullet points, etc.
             """
@@ -356,6 +364,43 @@ class GitHubRepoAnalyzer:
             logger.error(f"Failed to generate project summary: {e}")
             return f"# Error Generating Project Summary\n\nAn error occurred: {str(e)}"
 
+    def ask_question_about_repo(self, repo_name: str, analyses: List[str], question: str) -> str:
+        """
+        Answer a question about the repository based on the analysis.
+        
+        Args:
+            repo_name: Name of the GitHub repository
+            analyses: List of code analyses
+            question: User's question about the repository
+            
+        Returns:
+            str: Answer to the question
+        """
+        combined_analyses = "\n\n".join(analyses)
+        
+        prompt = f"""
+        You are an AI assistant that answers questions about GitHub repositories based on their code analysis.
+        
+        REPOSITORY NAME: {repo_name}
+        
+        CODE ANALYSES:
+        {combined_analyses}
+        
+        USER QUESTION: {question}
+        
+        Answer the question based ONLY on the information provided in the code analyses.
+        If the information is not available in the analyses, honestly state that you don't have enough information to answer the question.
+        Provide specific examples from the code when relevant.
+        Keep your answer concise but informative.
+        """
+        
+        try:
+            response = self.model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to answer question about repository: {e}")
+            return f"I apologize, but I encountered an error while trying to answer your question: {str(e)}"
+    
     def analyze_repository(self, repo_url: str, output_type: str = "analysis", output_dir: str = None) -> Tuple[str, str]:
         """
         Analyze a GitHub repository and generate a report.
@@ -419,6 +464,9 @@ class GitHubRepoAnalyzer:
                     # Combine file analyses
                     combined_file_analysis = f"## Analysis of {rel_path}\n\n" + "\n\n".join(file_analysis)
                     analyses.append(combined_file_analysis)
+            
+            # Store the analyses for chat functionality
+            self._last_analyses = analyses
             
             # Generate report based on specified output type
             report_content = self.generate_project_summary(analyses, repo_name, output_type)
